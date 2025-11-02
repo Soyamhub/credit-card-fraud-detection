@@ -1,1 +1,39 @@
-venv/\n*.pyc\n__pycache__/\nnode_modules/
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.env
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# ML Models (if too large, but you might want to include them)
+# *.pkl
+
+# Data files (usually too large for GitHub)
+*.csv
+data/
+
+# Frontend
+node_modules/
+dist/
+build/
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
