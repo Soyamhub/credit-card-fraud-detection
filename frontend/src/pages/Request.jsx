@@ -6,12 +6,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { predictFraud } from "@/services/api";
 
 const Request = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    amount: "",
-    time: ""
+    Time: "",
+    V1: "",
+    V2: "",
+    V3: "",
+    V4: "",
+    V5: "",
+    V6: "",
+    V7: "",
+    V8: "",
+    V9: "",
+    V10: "",
+    V11: "",
+    V12: "",
+    V13: "",
+    V14: "",
+    V15: "",
+    V16: "",
+    V17: "",
+    V18: "",
+    V19: "",
+    V20: "",
+    V21: "",
+    V22: "",
+    V23: "",
+    V24: "",
+    V25: "",
+    V26: "",
+    V27: "",
+    V28: "",
+    Amount: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -19,16 +48,26 @@ const Request = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.amount) {
-      newErrors.amount = "Amount is required";
-    } else if (isNaN(Number(formData.amount)) || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = "Amount must be a positive number";
+    if (!formData.Amount) {
+      newErrors.Amount = "Amount is required";
+    } else if (isNaN(Number(formData.Amount)) || parseFloat(formData.Amount) <= 0) {
+      newErrors.Amount = "Amount must be a positive number";
     }
     
-    if (!formData.time) {
-      newErrors.time = "Time is required";
-    } else if (isNaN(Number(formData.time)) || parseInt(formData.time) < 0) {
-      newErrors.time = "Time must be a non-negative number";
+    if (!formData.Time) {
+      newErrors.Time = "Time is required";
+    } else if (isNaN(Number(formData.Time)) || parseInt(formData.Time) < 0) {
+      newErrors.Time = "Time must be a non-negative number";
+    }
+
+    // Validate V1-V28 fields
+    for (let i = 1; i <= 28; i++) {
+      const field = `V${i}`;
+      if (!formData[field]) {
+        newErrors[field] = `V${i} is required`;
+      } else if (isNaN(Number(formData[field]))) {
+        newErrors[field] = `V${i} must be a number`;
+      }
     }
     
     setErrors(newErrors);
@@ -39,31 +78,42 @@ const Request = () => {
     e.preventDefault();
     
     if (!validateForm()) {
-      toast.error("Please fix the form errors");
+      toast.error("Please fill all required fields correctly");
       return;
     }
 
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Mock prediction logic
-      const prediction = parseFloat(formData.amount) > 5000 ? "Fraud" : "Safe";
-      const confidence = Math.random() * 20 + 80; // 80-100%
+    try {
+      // Convert all form values to numbers
+      const numericData = {};
+      for (let key in formData) {
+        numericData[key] = parseFloat(formData[key]);
+      }
+
+      // Call the backend API
+      const result = await predictFraud(numericData);
       
-      // Store result in sessionStorage to pass to Result page
+      // Store result to pass to Result page
       sessionStorage.setItem('lastResult', JSON.stringify({
-        amount: formData.amount,
-        time: formData.time,
-        prediction,
-        confidence: confidence.toFixed(2),
+        ...numericData,
+        prediction: result.prediction,
+        probability: result.probability,
         timestamp: new Date().toISOString()
       }));
       
-      setLoading(false);
       toast.success("Analysis complete!");
       navigate("/result");
-    }, 2000);
+      
+    } catch (error) {
+      console.error("API Error:", error);
+      toast.error(
+        error.response?.data?.error || 
+        "Failed to analyze transaction. Please check your connection and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -75,9 +125,46 @@ const Request = () => {
     }
   };
 
+  // Fill sample data for testing
+  const fillSampleData = () => {
+    setFormData({
+      Time: "406",
+      V1: "-2.3122265423263",
+      V2: "1.95199201064158",
+      V3: "-1.60985073229769",
+      V4: "3.99790659274637",
+      V5: "-0.522187864667764",
+      V6: "-1.42654531920595",
+      V7: "-2.53738730624579",
+      V8: "1.39165724829804",
+      V9: "-2.77008927719433",
+      V10: "-2.77227214465915",
+      V11: "3.20203320709635",
+      V12: "-2.89990738849473",
+      V13: "-0.595221881324605",
+      V14: "-4.28925378244217",
+      V15: "0.389724120274487",
+      V16: "-1.14074717980657",
+      V17: "-2.83005567450437",
+      V18: "-0.0168224681808257",
+      V19: "0.416955705037907",
+      V20: "0.126910559061474",
+      V21: "0.517232370861764",
+      V22: "-0.0350493686052974",
+      V23: "-0.465211076182388",
+      V24: "0.320198198514526",
+      V25: "0.0445191674731724",
+      V26: "0.177839798284401",
+      V27: "0.261145002567677",
+      V28: "-0.143275874698919",
+      Amount: "0"
+    });
+    toast.info("Sample data filled!");
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="container mx-auto max-w-2xl">
+      <div className="container mx-auto max-w-4xl">
         <h1 className="text-4xl font-bold mb-2">Fraud Detection Request</h1>
         <p className="text-muted-foreground mb-8">
           Enter transaction details to check for potential fraud
@@ -85,55 +172,100 @@ const Request = () => {
 
         <Card className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Amount Field */}
-            <div className="space-y-2">
-              <Label htmlFor="amount" className="text-base font-semibold">
-                Transaction Amount ($)
-              </Label>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                placeholder="e.g., 1250.50"
-                value={formData.amount}
-                onChange={handleChange}
-                className={errors.amount ? "border-destructive" : ""}
-              />
-              {errors.amount && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{errors.amount}</span>
-                </div>
-              )}
-              <p className="text-sm text-muted-foreground">
-                Enter the transaction amount in USD
-              </p>
+            {/* Primary Fields - Amount and Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Amount Field */}
+              <div className="space-y-2">
+                <Label htmlFor="Amount" className="text-base font-semibold">
+                  Transaction Amount ($) *
+                </Label>
+                <Input
+                  id="Amount"
+                  name="Amount"
+                  type="number"
+                  step="any"
+                  placeholder="e.g., 1250.50"
+                  value={formData.Amount}
+                  onChange={handleChange}
+                  className={errors.Amount ? "border-destructive" : ""}
+                />
+                {errors.Amount && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.Amount}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Time Field */}
+              <div className="space-y-2">
+                <Label htmlFor="Time" className="text-base font-semibold">
+                  Transaction Time (seconds) *
+                </Label>
+                <Input
+                  id="Time"
+                  name="Time"
+                  type="number"
+                  step="any"
+                  placeholder="e.g., 12345"
+                  value={formData.Time}
+                  onChange={handleChange}
+                  className={errors.Time ? "border-destructive" : ""}
+                />
+                {errors.Time && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.Time}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Time Field */}
-            <div className="space-y-2">
-              <Label htmlFor="time" className="text-base font-semibold">
-                Transaction Time (seconds)
-              </Label>
-              <Input
-                id="time"
-                name="time"
-                type="number"
-                placeholder="e.g., 12345"
-                value={formData.time}
-                onChange={handleChange}
-                className={errors.time ? "border-destructive" : ""}
-              />
-              {errors.time && (
+            {/* PCA Features V1-V28 */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">
+                  PCA Features (V1-V28) *
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={fillSampleData}
+                >
+                  Fill Sample Data
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                {Array.from({ length: 28 }, (_, i) => i + 1).map((num) => {
+                  const fieldName = `V${num}`;
+                  return (
+                    <div key={num} className="space-y-1">
+                      <Label htmlFor={fieldName} className="text-xs">
+                        V{num}
+                      </Label>
+                      <Input
+                        id={fieldName}
+                        name={fieldName}
+                        type="number"
+                        step="any"
+                        placeholder="0.00"
+                        value={formData[fieldName]}
+                        onChange={handleChange}
+                        className={`text-sm ${errors[fieldName] ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {Object.keys(errors).some(key => key.startsWith('V')) && (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <span>{errors.time}</span>
+                  <span>All V1-V28 fields must be filled with numeric values</span>
                 </div>
               )}
-              <p className="text-sm text-muted-foreground">
-                Time in seconds since epoch or transaction start
-              </p>
             </div>
 
             {/* Info Box */}
@@ -144,8 +276,9 @@ const Request = () => {
               </h3>
               <p className="text-sm text-muted-foreground">
                 Our machine learning model analyzes transaction patterns using RandomForest 
-                algorithm with SMOTE and StandardScaler preprocessing to detect anomalies 
-                that may indicate fraudulent activity.
+                algorithm with SMOTE and StandardScaler preprocessing. The V1-V28 features 
+                are PCA-transformed components that capture transaction patterns while 
+                maintaining privacy.
               </p>
             </div>
 
