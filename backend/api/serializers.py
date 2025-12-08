@@ -1,6 +1,39 @@
+# api/serializers.py
 from rest_framework import serializers
 
 class FraudPredictionSerializer(serializers.Serializer):
+    # -------- NEW: human-friendly fields (front-end) --------
+    amount = serializers.FloatField(required=False)  # transaction amount
+    time_since_last_txn = serializers.FloatField(required=False)  # in minutes/hours
+    channel = serializers.ChoiceField(
+        choices=['online', 'pos', 'atm'],
+        required=False
+    )
+    merchant_category = serializers.ChoiceField(
+        choices=['electronics', 'groceries', 'clothing', 'travel',
+                 'gaming', 'utilities', 'restaurants', 'fuel'],
+        required=False
+    )
+    country = serializers.ChoiceField(
+        choices=['IN', 'US', 'UK', 'CA', 'AU', 'SG'],
+        required=False
+    )
+    time_of_day = serializers.ChoiceField(
+        choices=['morning', 'afternoon', 'evening', 'night'],
+        required=False
+    )
+    day_of_week = serializers.ChoiceField(
+        choices=['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+        required=False
+    )
+    previous_24h_txns = serializers.IntegerField(required=False)
+    avg_amount_7d = serializers.FloatField(required=False)
+    chargeback_history = serializers.ChoiceField(
+        choices=['yes', 'no'],
+        required=False
+    )
+
+    # -------- OLD: low-level model features (internal / advanced mode) --------
     Time = serializers.FloatField(required=False)
     V1 = serializers.FloatField(required=False)
     V2 = serializers.FloatField(required=False)
