@@ -56,7 +56,7 @@ cd fraud-detector-frontend
 
 ### Install Dependencies
 ```bash
-npm install
+npm install vite
 # or
 yarn install
 ```

@@ -96,7 +96,7 @@ const Request = () => {
     toast.info("Sample data filled!");
   };
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -123,14 +123,36 @@ const Request = () => {
 
       const result = await predictFraud(payload);
 
-      // Store for Result page
+      // ---------- NEW: build history record ----------
+      const prob =
+        result.fraud_probability ?? result.probability ?? 0; // backend prob
+      const predictionLabel = result.prediction === 1 ? "Fraud" : "Safe";
+      const confidence =
+        result.prediction === 1 ? prob : 1 - prob; // confidence for shown class
+
+      const txRecord = {
+        id: `TXN${Date.now()}`,          // simple unique id
+        time: payload.time_since_last_txn, // shown in Transactions "Time" column
+        amount: payload.amount,
+        prediction: predictionLabel,     // "Safe" | "Fraud"
+        confidence,                      // 0–1
+        dateSubmitted: new Date().toISOString(),
+      };
+
+      // Save to localStorage (prepend latest, keep e.g. last 100)
+      const existing = JSON.parse(
+        localStorage.getItem("transactions") || "[]"
+      );
+      const updated = [txRecord, ...existing].slice(0, 100);
+      localStorage.setItem("transactions", JSON.stringify(updated));
+
+      // ---------- existing: store for Result page ----------
       sessionStorage.setItem(
         "lastResult",
         JSON.stringify({
           ...payload,
           prediction: result.prediction,
-          fraud_probability:
-            result.fraud_probability ?? result.probability ?? null,
+          fraud_probability: prob,
           timestamp: new Date().toISOString(),
         })
       );
