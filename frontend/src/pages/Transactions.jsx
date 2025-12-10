@@ -17,15 +17,20 @@ const Transactions = () => {
   // Apply filter + search
   const filteredTxns = useMemo(() => {
     return transactions.filter((t) => {
-      if (filter === "safe" && t.prediction !== "Safe") return false;
-      if (filter === "fraud" && t.prediction !== "Fraud") return false;
+      // prediction expected as 0/1 (from backend)
+      const isFraud = Number(t.prediction) === 1;
+
+      if (filter === "safe" && isFraud) return false;
+      if (filter === "fraud" && !isFraud) return false;
 
       if (!search.trim()) return true;
       const q = search.toLowerCase();
-      return (
-        String(t.id).toLowerCase().includes(q) ||
-        String(t.amount).toLowerCase().includes(q)
-      );
+
+      // Try to be robust with fields that might exist
+      const idStr = String(t.id ?? "").toLowerCase();
+      const amtStr = String(t.amount ?? "").toLowerCase();
+
+      return idStr.includes(q) || amtStr.includes(q);
     });
   }, [transactions, filter, search]);
 
@@ -84,7 +89,9 @@ const Transactions = () => {
                   <th className="py-3 px-4 text-left font-semibold">
                     Transaction ID
                   </th>
-                  <th className="py-3 px-4 text-left font-semibold">Time</th>
+                  <th className="py-3 px-4 text-left font-semibold">
+                    Time Since Last Txn
+                  </th>
                   <th className="py-3 px-4 text-left font-semibold">Amount</th>
                   <th className="py-3 px-4 text-left font-semibold">
                     Prediction
@@ -109,38 +116,59 @@ const Transactions = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredTxns.map((t) => (
-                    <tr key={t.id} className="border-b last:border-0">
-                      <td className="py-3 px-4 font-mono text-primary">
-                        {t.id}
-                      </td>
-                      <td className="py-3 px-4">{t.time}</td>
-                      <td className="py-3 px-4">
-                        ${Number(t.amount).toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4">
-                        {t.prediction === "Fraud" ? (
-                          <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-medium">
-                            Fraud
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-medium">
-                            Safe
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {t.confidence != null
-                          ? `${(t.confidence * 100).toFixed(1)}%`
-                          : "N/A"}
-                      </td>
-                      <td className="py-3 px-4">
-                        {t.dateSubmitted
-                          ? new Date(t.dateSubmitted).toLocaleString()
-                          : "-"}
-                      </td>
-                    </tr>
-                  ))
+                  filteredTxns.map((t, idx) => {
+                    const isFraud = Number(t.prediction) === 1;
+                    const amountNum = Number(t.amount ?? 0);
+                    const prob =
+                      t.fraud_probability ??
+                      t.probability ??
+                      t.confidence ??
+                      null;
+                    const dateStr =
+                      t.submittedAt ||
+                      t.dateSubmitted ||
+                      t.timestamp ||
+                      null;
+
+                    return (
+                      <tr key={t.id ?? idx} className="border-b last:border-0">
+                        <td className="py-3 px-4 font-mono text-primary">
+                          {t.id ?? idx + 1}
+                        </td>
+                        <td className="py-3 px-4">
+                          {t.time_since_last_txn != null
+                            ? `${t.time_since_last_txn} min`
+                            : "-"}
+                        </td>
+                        <td className="py-3 px-4">
+                          {isNaN(amountNum)
+                            ? "-"
+                            : `₹${amountNum.toFixed(2)}`}
+                        </td>
+                        <td className="py-3 px-4">
+                          {isFraud ? (
+                            <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-medium">
+                              Fraud
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-medium">
+                              Safe
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {prob != null
+                            ? `${(Number(prob) * 100).toFixed(1)}%`
+                            : "N/A"}
+                        </td>
+                        <td className="py-3 px-4">
+                          {dateStr
+                            ? new Date(dateStr).toLocaleString()
+                            : "-"}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

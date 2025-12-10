@@ -1,182 +1,268 @@
-# 🛡️ Fraud Detector Frontend
+🛡️ Fraud Detection System — Full-Stack (React + Django + ML)
 
-An advanced AI-powered credit card fraud detection system with real-time analysis capabilities. Built with modern web technologies for performance and scalability.
+A modern real-time AI-powered fraud detection platform built with React (Vite) on the frontend and Django + Machine Learning on the backend.
+Supports user authentication (JWT), per-user transaction history, rule-enhanced ML fraud prediction, and a clean & interactive UI.
 
-[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF.svg)](https://vitejs.dev/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-3.x-38B2AC.svg)](https://tailwindcss.com/)
+🚀 Key Features
+🔐 Authentication
 
-## 🚀 Features
+Secure JWT-based Login & Signup
 
-### Core Functionality
-- **Real-time Transaction Analysis** - Instant fraud detection on transactions
-- **Interactive Dashboard** - Comprehensive overview with key metrics and visualizations
-- **Transaction History** - Complete transaction log with filtering and search
-- **Fraud Analysis Requests** - Submit transactions for detailed fraud assessment
-- **Result Visualization** - Clear, actionable fraud detection results
+Only authenticated users can submit transactions
 
-### Technical Highlights
-- ⚡ Lightning-fast performance with Vite
-- 🎨 Modern, responsive UI with Tailwind CSS
-- 🔄 Real-time updates with TanStack Query
-- 📱 Mobile-first responsive design
-- ♿ Accessible components with shadcn/ui
-- 🎯 Type-safe routing with React Router
+Each user sees only their own transaction history
 
-## 🛠️ Tech Stack
+🤖 Fraud Detection Engine
 
-### Frontend Framework
-- **React 18** - Modern React with hooks and concurrent features
-- **Vite** - Next-generation frontend tooling for blazing fast HMR
+Backend ML model + rule-based risk enhancer
 
-### Styling & UI
-- **Tailwind CSS** - Utility-first CSS framework
-- **shadcn/ui** - High-quality, accessible component library
-- **Lucide Icons** - Beautiful, consistent icon set
+Human-friendly inputs → converted to V1–V28 features
 
-### State Management & Data Fetching
-- **TanStack Query (React Query)** - Powerful data synchronization
-- **React Router v6** - Declarative routing
+Real-time fraud probability score
 
-### Development Tools
-- **ESLint** - Code linting and quality checks
-- **PostCSS** - CSS transformations
+Risk boost logic: large amounts, foreign country, chargebacks, high burst activity, etc.
 
-## 📦 Installation
+📊 Dashboard & History
 
-### Prerequisites
-- Node.js 16.x or higher
-- npm or yarn package manager
+User-specific transaction logs
 
-### Clone Repository
-```bash
-git clone https://github.com/YOUR-USERNAME/fraud-detector-frontend.git
-cd fraud-detector-frontend
-```
+Filters: Fraud / Safe / All
 
-### Install Dependencies
-```bash
-npm install vite
-# or
-yarn install
-```
+Search by ID or amount
 
-## 🚀 Quick Start
+Auto-stored history in database (not localStorage)
 
-### Development Server
-```bash
+🖥️ Modern UI
+
+Built using React 18, TailwindCSS, shadcn/ui
+
+Fast Vite bundler
+
+Responsive on mobile + desktop
+
+🏗️ Tech Stack
+Frontend
+
+React 18 + Vite
+
+TailwindCSS
+
+shadcn/ui components
+
+Lucide Icons
+
+React Router 6
+
+Axios
+
+Backend
+
+Django
+
+Django REST Framework
+
+SimpleJWT Auth
+
+Scikit-Learn ML Model
+
+NumPy, Pandas
+
+Machine Learning
+
+Trained RandomForest classifier
+
+Scaled feature input
+
+PCA-transformed V1–V28 embedding
+
+Risk-boost heuristic layer
+
+📁 Project Structure
+fraud-detection-app/
+├── backend/
+│   ├── api/
+│   │   ├── models.py           # Transaction model
+│   │   ├── views.py            # Prediction, history, auth
+│   │   ├── serializers.py
+│   │   ├── feature_mapping.py  # Converts human input → V1–V28
+│   │   ├── urls.py
+│   │   └── utils.py            # Load ML model + scaler
+│   ├── fraud_detection/
+│   ├── ml_models/
+│   │   ├── model.pkl
+│   │   ├── scaler.pkl
+│   │   └── feature_means.json
+│   └── manage.py
+└── frontend/
+    ├── src/
+    │   ├── pages/
+    │   ├── components/
+    │   ├── services/
+    │   └── App.jsx
+    └── package.json
+
+🔧 Backend Setup
+1️⃣ Install dependencies
+cd backend
+pip install -r requirements.txt
+
+2️⃣ Run migrations
+python manage.py makemigrations
+python manage.py migrate
+
+3️⃣ Start server
+python manage.py runserver
+
+4️⃣ ML Model Files
+
+Place inside:
+
+backend/ml_models/
+  - model.pkl
+  - scaler.pkl
+  - feature_means.json
+
+🔐 Authentication Endpoints
+Signup
+
+POST /api/auth/register/
+
+Body:
+
+{
+  "username": "john",
+  "password": "123456",
+  "email": "john@gmail.com"
+}
+
+Login
+
+POST /api/auth/login/
+
+Returns:
+
+{
+  "access": "<jwt>",
+  "refresh": "<jwt>"
+}
+
+Refresh Token
+
+POST /api/auth/refresh/
+
+🤖 Fraud Prediction Endpoint
+
+POST /api/predict/ (Authenticated)
+
+Body example:
+
+{
+  "amount": 9000,
+  "time_since_last_txn": 1,
+  "channel": "online",
+  "merchant_category": "electronics",
+  "country": "UK",
+  "time_of_day": "evening",
+  "day_of_week": "fri",
+  "previous_24h_txns": 8,
+  "avg_amount_7d": 1500,
+  "chargeback_history": "yes"
+}
+
+
+Returns:
+
+{
+  "prediction": 1,
+  "fraud_probability": 0.92,
+  "ml_probability": 0.41,
+  "rule_probability": 0.78,
+  "risk_bonus": 0.3
+}
+
+📜 Transaction History API
+
+User must be logged in.
+
+GET /api/my-transactions/
+
+Returns only the logged-in user’s transactions.
+
+🧠 Fraud Model Logic (Simplified)
+
+Your backend combines:
+
+1️⃣ Machine Learning (RandomForest)
+
+Predicts a base fraud probability from V1–V28 features.
+
+2️⃣ Rule-Based System
+
+Adds probability when:
+
+Amount > 5000 or > 10,000
+
+Previous 24h transactions ≥ 5 or ≥ 10
+
+Country ≠ IN
+
+Chargeback history = yes
+
+Amount ≫ avg last 7 days
+
+3️⃣ Final Score
+combined = 0.5 * ml_prob + 0.5 * rules_prob + risk_bonus
+
+🖥️ Frontend Setup
+Install dependencies
+cd frontend
+npm install
+
+Start development server
 npm run dev
-```
-Visit `http://localhost:5173` to view the application.
 
-### Production Build
-```bash
-npm run build
-```
+🧭 Frontend Pages
+Page	Route	Description
+Login	/login	User authentication
+Signup	/signup	Create new account
+Dashboard	/dashboard	Analytics overview
+Request	/request	Fraud check form
+Result	/result	Prediction output
+Transactions	/transactions	History (per-user)
+About	/about	Project info
+🔐 Protected Routes
 
-### Preview Production Build
-```bash
-npm run preview
-```
+You cannot access:
 
-## 📁 Project Structure
-```
-fraud-detector-frontend/
-├── public/                 # Static assets
-├── src/
-│   ├── components/        # Reusable components
-│   │   ├── ui/           # shadcn/ui components
-│   │   └── Navigation.jsx
-│   ├── pages/            # Page components
-│   │   ├── Home.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── Request.jsx
-│   │   ├── Transactions.jsx
-│   │   ├── Result.jsx
-│   │   ├── About.jsx
-│   │   └── NotFound.jsx
-│   ├── hooks/            # Custom React hooks
-│   │   └── use-toast.js
-│   ├── lib/              # Utility functions
-│   │   └── utils.js
-│   ├── App.jsx           # Main application component
-│   ├── main.jsx          # Application entry point
-│   └── index.css         # Global styles
-├── .gitignore
-├── index.html
-├── package.json
-├── vite.config.js
-├── tailwind.config.js
-└── README.md
-```
+/dashboard
 
-## 🎯 Key Pages
+/request
 
-| Page | Route | Description |
-|------|-------|-------------|
-| Home | `/` | Landing page with overview |
-| Dashboard | `/dashboard` | Analytics and metrics dashboard |
-| Request | `/request` | Submit fraud analysis requests |
-| Transactions | `/transactions` | View transaction history |
-| Result | `/result` | Fraud detection results |
-| About | `/about` | About the application |
+/transactions
 
-## 🔧 Configuration
+/result
 
-### Environment Variables
-Create a `.env` file in the root directory:
-```env
-VITE_API_BASE_URL=http://localhost:8000
-VITE_API_TIMEOUT=30000
-```
+until logged in, enforced by ProtectedRoute.jsx.
 
-### Vite Configuration
-See `vite.config.js` for build and development settings.
+⭐ Future Enhancements
 
-### Tailwind Configuration
-Customize theme in `tailwind.config.js`.
+Admin dashboard
 
-## 🤝 Contributing
+Live anomaly monitoring
 
-Contributions are welcome! Please follow these steps:
+Neural network fraud model
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Multi-factor authentication
 
-## 📝 Scripts
+SMS/email alert system
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
+👤 Author
 
-## 🐛 Known Issues
+Soyam Shubham Swain
+📍 Bhubaneswar
+🎓 Gandhi Engineering College
+💼 ML + Full-Stack Developer
 
-- None currently reported
+⭐ Support the Project
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Authors
-
-- Your Name - [GitHub Profile](https://github.com/YOUR-USERNAME)
-
-## 🙏 Acknowledgments
-
-- shadcn for the amazing UI component library
-- Vercel for Vite and tooling
-- The React team for the awesome framework
-
-## 📧 Contact
-
-For questions or support, please open an issue on GitHub.
-
----
-
-⭐ Star this repo if you find it helpful!
+If this helped you, please ⭐ star the GitHub repo!

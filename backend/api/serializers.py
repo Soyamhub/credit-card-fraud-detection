@@ -1,5 +1,6 @@
 # api/serializers.py
 from rest_framework import serializers
+from .models import Transaction
 
 class FraudPredictionSerializer(serializers.Serializer):
     # -------- NEW: human-friendly fields (front-end) --------
@@ -64,3 +65,10 @@ class FraudPredictionSerializer(serializers.Serializer):
     V27 = serializers.FloatField(required=False)
     V28 = serializers.FloatField(required=False)
     Amount = serializers.FloatField(required=False)
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = "__all__"
+        read_only_fields = ("user", "created_at")

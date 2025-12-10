@@ -4,10 +4,19 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import FraudPredictionSerializer
 from .utils import model, scaler
-from .feature_mapping import build_model_features_from_friendly  # <-- helper
+from .feature_mapping import build_model_features_from_friendly
 import numpy as np
 import json
 import os
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated
+from .models import Transaction
+from .serializers import TransactionSerializer
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE_DIR, "ml_models")
@@ -69,6 +78,9 @@ def rule_based_risk(data):
 
 
 class PredictFraud(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
     def post(self, request):
         serializer = FraudPredictionSerializer(data=request.data)
         if not serializer.is_valid():
@@ -170,6 +182,28 @@ class PredictFraud(APIView):
         threshold = 0.5
         prediction = 1 if combined_prob >= threshold else 0
 
+        # ---------- SAVE to DB if user is logged in ----------
+        if request.user.is_authenticated and not has_low_level:
+            Transaction.objects.create(
+                user=request.user,
+                amount=data.get("amount", 0),
+                time_since_last_txn=data.get("time_since_last_txn", 0),
+                channel=data.get("channel", ""),
+                merchant_category=data.get("merchant_category", ""),
+                country=data.get("country", ""),
+                time_of_day=data.get("time_of_day", ""),
+                day_of_week=data.get("day_of_week", ""),
+                previous_24h_txns=data.get("previous_24h_txns", 0),
+                avg_amount_7d=data.get("avg_amount_7d", 0),
+                chargeback_history=(
+                    str(data.get("chargeback_history", "no")).lower() == "yes"
+                ),
+                prediction=prediction,
+                fraud_probability=combined_prob,
+                ml_probability=ml_prob,
+                rule_probability=rules_prob,
+            )
+
         return Response(
             {
                 "prediction": int(prediction),
@@ -179,3 +213,45 @@ class PredictFraud(APIView):
                 "risk_bonus": risk_bonus,
             }
         )
+
+class MyTransactions(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = Transaction.objects.filter(user=request.user).order_by("-created_at")
+        serializer = TransactionSerializer(qs, many=True)
+        return Response(serializer.data)
+    
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def register_user(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+    email = request.data.get("email", "")
+
+    # Validate input
+    if not username or not password:
+        return Response(
+            {"error": "Username and password are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Check if username already exists
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {"error": "Username already exists"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Create the user
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=password
+    )
+    user.save()
+
+    return Response(
+        {"message": "User created successfully"},
+        status=status.HTTP_201_CREATED
+    )

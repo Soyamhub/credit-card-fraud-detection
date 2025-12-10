@@ -1,10 +1,20 @@
+# --- Django & REST Framework ---
 Django>=4.1
 djangorestframework>=3.14
+djangorestframework-simplejwt>=5.3.0
+
+# --- Core Python Utilities ---
 numpy>=1.23
 pandas>=1.5
-scikit-learn>=1.1
-imblearn>=0.0
-imbalanced-learn>=0.11
 joblib>=1.2
+
+# --- Machine Learning ---
+scikit-learn>=1.2
+imbalanced-learn>=0.11.0
+
+# --- Visualization (optional but useful for training) ---
 matplotlib>=3.6
 seaborn>=0.12
+
+# --- CORS (recommended if React frontend is separate) ---
+django-cors-headers>=3.13
