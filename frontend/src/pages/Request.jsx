@@ -1,3 +1,4 @@
+// src/pages/Request.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -11,7 +12,6 @@ import { predictFraud } from "@/services/api";
 const Request = () => {
   const navigate = useNavigate();
 
-  // --- NEW: human-friendly form fields ---
   const [formData, setFormData] = useState({
     amount: "",
     time_since_last_txn: "",
@@ -28,45 +28,37 @@ const Request = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // validation (same as you had)
   const validateForm = () => {
     const newErrors = {};
 
-    // Amount
-    if (!formData.amount) {
-      newErrors.amount = "Amount is required";
-    } else if (isNaN(Number(formData.amount)) || parseFloat(formData.amount) <= 0) {
+    if (!formData.amount) newErrors.amount = "Amount is required";
+    else if (isNaN(Number(formData.amount)) || parseFloat(formData.amount) <= 0)
       newErrors.amount = "Amount must be a positive number";
-    }
 
-    // Time since last transaction
-    if (!formData.time_since_last_txn) {
+    if (!formData.time_since_last_txn)
       newErrors.time_since_last_txn = "Time since last transaction is required";
-    } else if (
+    else if (
       isNaN(Number(formData.time_since_last_txn)) ||
       parseFloat(formData.time_since_last_txn) < 0
-    ) {
+    )
       newErrors.time_since_last_txn = "Time must be a non-negative number";
-    }
 
-    // Previous 24h txns
-    if (formData.previous_24h_txns === "") {
+    if (formData.previous_24h_txns === "")
       newErrors.previous_24h_txns = "Previous 24h transactions is required";
-    } else if (
+    else if (
       isNaN(Number(formData.previous_24h_txns)) ||
       parseInt(formData.previous_24h_txns) < 0
-    ) {
+    )
       newErrors.previous_24h_txns = "Must be a non-negative integer";
-    }
 
-    // Avg amount 7d
-    if (!formData.avg_amount_7d) {
+    if (!formData.avg_amount_7d)
       newErrors.avg_amount_7d = "Average amount (7 days) is required";
-    } else if (
+    else if (
       isNaN(Number(formData.avg_amount_7d)) ||
       parseFloat(formData.avg_amount_7d) < 0
-    ) {
+    )
       newErrors.avg_amount_7d = "Average amount must be a non-negative number";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -74,16 +66,14 @@ const Request = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    setFormData((p) => ({ ...p, [name]: value }));
+    if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
   };
 
   const fillSampleData = () => {
     setFormData({
       amount: "2500.75",
-      time_since_last_txn: "45", // minutes
+      time_since_last_txn: "45",
       channel: "online",
       merchant_category: "electronics",
       country: "IN",
@@ -96,18 +86,15 @@ const Request = () => {
     toast.info("Sample data filled!");
   };
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) {
       toast.error("Please fill all required fields correctly");
       return;
     }
 
     setLoading(true);
-
     try {
-      // Build payload with correct types (what DRF serializer expects)
       const payload = {
         amount: parseFloat(formData.amount),
         time_since_last_txn: parseFloat(formData.time_since_last_txn),
@@ -123,47 +110,29 @@ const Request = () => {
 
       const result = await predictFraud(payload);
 
-      // ---------- NEW: build history record ----------
-      const prob =
-        result.fraud_probability ?? result.probability ?? 0; // backend prob
-      const predictionLabel = result.prediction === 1 ? "Fraud" : "Safe";
-      const confidence =
-        result.prediction === 1 ? prob : 1 - prob; // confidence for shown class
-
-      const txRecord = {
-        id: `TXN${Date.now()}`,          // simple unique id
-        time: payload.time_since_last_txn, // shown in Transactions "Time" column
-        amount: payload.amount,
-        prediction: predictionLabel,     // "Safe" | "Fraud"
-        confidence,                      // 0–1
-        dateSubmitted: new Date().toISOString(),
-      };
-
-      // Save to localStorage (prepend latest, keep e.g. last 100)
-      const existing = JSON.parse(
-        localStorage.getItem("transactions") || "[]"
-      );
-      const updated = [txRecord, ...existing].slice(0, 100);
-      localStorage.setItem("transactions", JSON.stringify(updated));
-
-      // ---------- existing: store for Result page ----------
+      // Save lastResult for Result page (backend returns probabilities & prediction)
+      const prob = result.fraud_probability ?? result.probability ?? 0;
       sessionStorage.setItem(
         "lastResult",
         JSON.stringify({
-          ...payload,
+          payload,
           prediction: result.prediction,
           fraud_probability: prob,
+          ml_probability: result.ml_probability ?? null,
+          rule_probability: result.rule_probability ?? null,
+          risk_bonus: result.risk_bonus ?? null,
           timestamp: new Date().toISOString(),
         })
       );
 
       toast.success("Analysis complete!");
       navigate("/result");
-    } catch (error) {
-      console.error("API Error:", error);
+    } catch (err) {
+      console.error("API error:", err);
       toast.error(
-        error.response?.data?.error ||
-          "Failed to analyze transaction. Please check your connection and try again."
+        err.response?.data?.detail ||
+          err.response?.data?.error ||
+          "Failed to analyze transaction."
       );
     } finally {
       setLoading(false);
@@ -180,12 +149,10 @@ const Request = () => {
 
         <Card className="p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Amount & Time Since Last Txn */}
+            {/* Amount & Time */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-base font-semibold">
-                  Transaction Amount ($) *
-                </Label>
+                <Label htmlFor="amount">Transaction Amount (₹) *</Label>
                 <Input
                   id="amount"
                   name="amount"
@@ -197,7 +164,7 @@ const Request = () => {
                   className={errors.amount ? "border-destructive" : ""}
                 />
                 {errors.amount && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
+                  <div className="text-sm text-destructive flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
                     <span>{errors.amount}</span>
                   </div>
@@ -205,10 +172,7 @@ const Request = () => {
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="time_since_last_txn"
-                  className="text-base font-semibold"
-                >
+                <Label htmlFor="time_since_last_txn">
                   Time Since Last Transaction (minutes) *
                 </Label>
                 <Input
@@ -224,7 +188,7 @@ const Request = () => {
                   }
                 />
                 {errors.time_since_last_txn && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
+                  <div className="text-sm text-destructive flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
                     <span>{errors.time_since_last_txn}</span>
                   </div>
@@ -232,12 +196,10 @@ const Request = () => {
               </div>
             </div>
 
-            {/* Channel, Merchant, Country */}
+            {/* Channel / Merchant / Country */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="channel" className="text-base font-semibold">
-                  Channel
-                </Label>
+              <div>
+                <Label htmlFor="channel">Channel</Label>
                 <select
                   id="channel"
                   name="channel"
@@ -247,17 +209,11 @@ const Request = () => {
                 >
                   <option value="online">Online</option>
                   <option value="pos">POS (In-store)</option>
-                  <option value="atm">ATM</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="merchant_category"
-                  className="text-base font-semibold"
-                >
-                  Merchant Category
-                </Label>
+              <div>
+                <Label htmlFor="merchant_category">Merchant Category</Label>
                 <select
                   id="merchant_category"
                   name="merchant_category"
@@ -276,10 +232,8 @@ const Request = () => {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="country" className="text-base font-semibold">
-                  Country
-                </Label>
+              <div>
+                <Label htmlFor="country">Country</Label>
                 <select
                   id="country"
                   name="country"
@@ -297,15 +251,10 @@ const Request = () => {
               </div>
             </div>
 
-            {/* Time of Day, Day of Week, Chargeback */}
+            {/* Time of day / Day / Chargeback */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="time_of_day"
-                  className="text-base font-semibold"
-                >
-                  Time of Day
-                </Label>
+              <div>
+                <Label htmlFor="time_of_day">Time of Day</Label>
                 <select
                   id="time_of_day"
                   name="time_of_day"
@@ -320,13 +269,8 @@ const Request = () => {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="day_of_week"
-                  className="text-base font-semibold"
-                >
-                  Day of Week
-                </Label>
+              <div>
+                <Label htmlFor="day_of_week">Day of Week</Label>
                 <select
                   id="day_of_week"
                   name="day_of_week"
@@ -344,13 +288,8 @@ const Request = () => {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="chargeback_history"
-                  className="text-base font-semibold"
-                >
-                  Previous Chargeback History
-                </Label>
+              <div>
+                <Label htmlFor="chargeback_history">Previous Chargeback</Label>
                 <select
                   id="chargeback_history"
                   name="chargeback_history"
@@ -366,13 +305,8 @@ const Request = () => {
 
             {/* Previous 24h & Avg 7d */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="previous_24h_txns"
-                  className="text-base font-semibold"
-                >
-                  Transactions in Last 24h *
-                </Label>
+              <div>
+                <Label htmlFor="previous_24h_txns">Transactions in Last 24h *</Label>
                 <Input
                   id="previous_24h_txns"
                   name="previous_24h_txns"
@@ -381,25 +315,17 @@ const Request = () => {
                   placeholder="e.g., 3"
                   value={formData.previous_24h_txns}
                   onChange={handleChange}
-                  className={
-                    errors.previous_24h_txns ? "border-destructive" : ""
-                  }
                 />
                 {errors.previous_24h_txns && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
+                  <div className="text-sm text-destructive flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
                     <span>{errors.previous_24h_txns}</span>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="avg_amount_7d"
-                  className="text-base font-semibold"
-                >
-                  Average Amount (Last 7 Days) *
-                </Label>
+              <div>
+                <Label htmlFor="avg_amount_7d">Average Amount (Last 7 Days) *</Label>
                 <Input
                   id="avg_amount_7d"
                   name="avg_amount_7d"
@@ -408,10 +334,9 @@ const Request = () => {
                   placeholder="e.g., 800.00"
                   value={formData.avg_amount_7d}
                   onChange={handleChange}
-                  className={errors.avg_amount_7d ? "border-destructive" : ""}
                 />
                 {errors.avg_amount_7d && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
+                  <div className="text-sm text-destructive flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
                     <span>{errors.avg_amount_7d}</span>
                   </div>
@@ -419,37 +344,19 @@ const Request = () => {
               </div>
             </div>
 
-            {/* Info Box */}
+            {/* Info + Buttons */}
             <div className="bg-muted/50 border border-border rounded-lg p-4">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                How it works
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                You provide human-readable transaction details like amount,
-                channel, country, and recent activity. In the backend, these are
-                automatically converted into internal numerical features
-                (Time, V1–V28, Amount) using a feature mapping layer and then
-                passed to the trained RandomForest model for fraud prediction.
+              <h3 className="font-semibold mb-2">How it works</h3>
+              <p className="text-sm">
+                You provide readable transaction details. The backend converts these into internal features (V1–V28) and runs the model.
               </p>
             </div>
 
-            {/* Buttons */}
             <div className="flex flex-col md:flex-row gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="md:w-1/3"
-                onClick={fillSampleData}
-              >
+              <Button type="button" variant="outline" className="md:w-1/3" onClick={fillSampleData}>
                 Fill Sample Data
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                size="lg"
-                disabled={loading}
-              >
+              <Button type="submit" className="flex-1" size="lg" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -464,11 +371,7 @@ const Request = () => {
         </Card>
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>
-            All transaction data is processed securely and converted to internal
-            features before analysis. Results are generated in real-time using
-            our trained ML model.
-          </p>
+          <p>All transaction data is processed securely and converted to internal features before analysis.</p>
         </div>
       </div>
     </div>
